@@ -94,11 +94,16 @@ export default function Dashboard() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Work Order Management</h1>
               <p className="text-sm text-gray-600 mt-1">
-                {session?.user?.name} • {userRole?.replace("_", " ")}
+                {session?.user?.name} • {userRole?.replace("_", " ")} • {(session?.user as any)?.organizationName}
               </p>
             </div>
             <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={async () => {
+                await signOut({ 
+                  callbackUrl: "/login",
+                  redirect: true 
+                })
+              }}
               className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
             >
               Sign Out

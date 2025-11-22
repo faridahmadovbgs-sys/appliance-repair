@@ -5,6 +5,7 @@ export default function proxy(request: NextRequest) {
   // Allow public paths
   const publicPaths = [
     "/login",
+    "/register",
     "/api/auth",
     "/_next",
     "/favicon.ico",
