@@ -34,7 +34,25 @@ function LoginForm() {
       })
 
       if (result?.error) {
-        setError("Invalid email or password")
+        // Check if it's a CSRF error, if so try one more time
+        if (result.error === 'Configuration') {
+          // Wait a moment and retry
+          await new Promise(resolve => setTimeout(resolve, 500))
+          const retryResult = await signIn("credentials", {
+            email,
+            password,
+            redirect: false,
+          })
+          
+          if (retryResult?.error) {
+            setError("Invalid email or password")
+          } else {
+            router.push("/dashboard")
+            router.refresh()
+          }
+        } else {
+          setError("Invalid email or password")
+        }
       } else {
         router.push("/dashboard")
         router.refresh()
