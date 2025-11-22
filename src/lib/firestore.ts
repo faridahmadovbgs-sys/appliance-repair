@@ -11,6 +11,9 @@ const isFirebaseAvailable = () => {
   );
 };
 
+// Check if we should use demo mode
+const useDemoMode = process.env.NEXT_PUBLIC_USE_DEMO_MODE === 'true' || !isFirebaseAvailable();
+
 // Lazy load Firebase only when needed and available
 const getFirestoreModule = async () => {
   if (!isFirebaseAvailable()) {
@@ -83,6 +86,12 @@ const FIREBASE_ERROR = 'Firebase Firestore is not configured. Please check FIREB
 
 // Helper to ensure Firebase is available
 async function ensureFirestore() {
+  // Use demo mode if Firebase not available
+  if (useDemoMode) {
+    console.log('Using demo mode (Firebase not configured)');
+    return null;
+  }
+  
   const db = await getFirestoreModule();
   if (!db) {
     throw new Error(FIREBASE_ERROR);
@@ -92,6 +101,11 @@ async function ensureFirestore() {
 
 // User operations
 export async function createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+  if (useDemoMode) {
+    const demo = await import('./firestore-demo');
+    return demo.createUser(userData);
+  }
+  
   const db = await ensureFirestore();
   const userRef = db.collection('users').doc();
   const user: User = {
@@ -105,6 +119,11 @@ export async function createUser(userData: Omit<User, 'id' | 'createdAt'>): Prom
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
+  if (useDemoMode) {
+    const demo = await import('./firestore-demo');
+    return demo.getUserByEmail(email);
+  }
+  
   const db = await ensureFirestore();
   const snapshot = await db.collection('users').where('email', '==', email).get();
   if (snapshot.empty) return null;
@@ -113,6 +132,11 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 }
 
 export async function getUserById(id: string): Promise<User | null> {
+  if (useDemoMode) {
+    const demo = await import('./firestore-demo');
+    return demo.getUserById(id);
+  }
+  
   const db = await ensureFirestore();
   const doc = await db.collection('users').doc(id).get();
   if (!doc.exists) return null;
@@ -121,6 +145,11 @@ export async function getUserById(id: string): Promise<User | null> {
 }
 
 export async function getWorkersByOrganization(organizationId: string): Promise<User[]> {
+  if (useDemoMode) {
+    const demo = await import('./firestore-demo');
+    return demo.getWorkersByOrganization(organizationId);
+  }
+  
   const db = await ensureFirestore();
   const snapshot = await db.collection('users')
     .where('organizationId', '==', organizationId)
@@ -132,6 +161,11 @@ export async function getWorkersByOrganization(organizationId: string): Promise<
 
 // Organization operations
 export async function createOrganization(name: string): Promise<Organization> {
+  if (useDemoMode) {
+    const demo = await import('./firestore-demo');
+    return demo.createOrganization(name);
+  }
+  
   const db = await ensureFirestore();
   const orgRef = db.collection('organizations').doc();
   const organization: Organization = {
@@ -145,6 +179,11 @@ export async function createOrganization(name: string): Promise<Organization> {
 }
 
 export async function getOrganizationByName(name: string): Promise<Organization | null> {
+  if (useDemoMode) {
+    const demo = await import('./firestore-demo');
+    return demo.getOrganizationByName(name);
+  }
+  
   const db = await ensureFirestore();
   const snapshot = await db.collection('organizations').where('name', '==', name).get();
   if (snapshot.empty) return null;
@@ -154,6 +193,11 @@ export async function getOrganizationByName(name: string): Promise<Organization 
 
 // Work Order operations
 export async function createWorkOrder(orderData: Omit<WorkOrder, 'id' | 'createdAt' | 'updatedAt'>): Promise<WorkOrder> {
+  if (useDemoMode) {
+    const demo = await import('./firestore-demo');
+    return demo.createWorkOrder(orderData);
+  }
+  
   const db = await ensureFirestore();
   const orderRef = db.collection('workOrders').doc();
   const workOrder: WorkOrder = {
@@ -168,6 +212,11 @@ export async function createWorkOrder(orderData: Omit<WorkOrder, 'id' | 'created
 }
 
 export async function getWorkOrdersByOrganization(organizationId: string): Promise<WorkOrder[]> {
+  if (useDemoMode) {
+    const demo = await import('./firestore-demo');
+    return demo.getWorkOrdersByOrganization(organizationId);
+  }
+  
   const db = await ensureFirestore();
   const snapshot = await db.collection('workOrders')
     .where('organizationId', '==', organizationId)
@@ -182,6 +231,11 @@ export async function getWorkOrdersByOrganization(organizationId: string): Promi
 }
 
 export async function getWorkOrdersByAssignedUser(userId: string, organizationId: string): Promise<WorkOrder[]> {
+  if (useDemoMode) {
+    const demo = await import('./firestore-demo');
+    return demo.getWorkOrdersByAssignedUser(userId, organizationId);
+  }
+  
   const db = await ensureFirestore();
   const snapshot = await db.collection('workOrders')
     .where('organizationId', '==', organizationId)
@@ -197,6 +251,11 @@ export async function getWorkOrdersByAssignedUser(userId: string, organizationId
 }
 
 export async function updateWorkOrder(id: string, updates: Partial<Omit<WorkOrder, 'id' | 'createdAt'>>): Promise<void> {
+  if (useDemoMode) {
+    const demo = await import('./firestore-demo');
+    return demo.updateWorkOrder(id, updates);
+  }
+  
   const db = await ensureFirestore();
   await db.collection('workOrders').doc(id).update({
     ...updates,
@@ -205,6 +264,11 @@ export async function updateWorkOrder(id: string, updates: Partial<Omit<WorkOrde
 }
 
 export async function getWorkOrderById(id: string): Promise<WorkOrder | null> {
+  if (useDemoMode) {
+    const demo = await import('./firestore-demo');
+    return demo.getWorkOrderById(id);
+  }
+  
   const db = await ensureFirestore();
   const doc = await db.collection('workOrders').doc(id).get();
   if (!doc.exists) return null;
