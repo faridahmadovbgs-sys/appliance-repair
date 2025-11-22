@@ -1,46 +1,44 @@
-// Simplified Firestore module with build-time fallback support
-let firestoreModule: any = null;
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
-// Check if we're in a build environment or missing credentials
-const isFirebaseAvailable = () => {
+// Check if Firebase credentials are available
+const hasFirebaseCredentials = () => {
   return !!(
     process.env.FIREBASE_PROJECT_ID &&
     process.env.FIREBASE_CLIENT_EMAIL &&
-    process.env.FIREBASE_PRIVATE_KEY &&
-    typeof window === 'undefined' // Server-side only
+    process.env.FIREBASE_PRIVATE_KEY
   );
 };
 
-// Lazy load Firebase only when needed and available
-const getFirestoreModule = async () => {
-  if (!isFirebaseAvailable()) {
+// Initialize Firebase Admin (server-side)
+let db: any = null;
+
+const initializeFirebase = () => {
+  if (!hasFirebaseCredentials()) {
+    console.warn('Firebase credentials not found. Skipping Firebase initialization.');
     return null;
   }
 
-  if (!firestoreModule) {
+  if (!getApps().length) {
     try {
-      const { initializeApp, cert, getApps } = await import('firebase-admin/app');
-      const { getFirestore } = await import('firebase-admin/firestore');
-
-      if (!getApps().length) {
-        initializeApp({
-          credential: cert({
-            projectId: process.env.FIREBASE_PROJECT_ID!,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
-          }),
-        });
-      }
-
-      firestoreModule = getFirestore();
+      initializeApp({
+        credential: cert({
+          projectId: process.env.FIREBASE_PROJECT_ID!,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+        }),
+      });
     } catch (error) {
       console.error('Failed to initialize Firebase:', error);
       return null;
     }
   }
 
-  return firestoreModule;
+  return getFirestore();
 };
+
+// Initialize database connection
+db = initializeFirebase();
 
 // Data types
 export interface User {
@@ -79,21 +77,18 @@ export interface WorkOrder {
   updatedAt: Date;
 }
 
-const FIREBASE_ERROR = 'Firebase Firestore is not configured. Please check FIREBASE_SETUP.md for setup instructions.';
-
-// Helper to ensure Firebase is available
-async function ensureFirestore() {
-  const db = await getFirestoreModule();
+// Helper function to check if Firebase is available
+function ensureFirebaseInitialized() {
   if (!db) {
-    throw new Error(FIREBASE_ERROR);
+    throw new Error('Firebase is not initialized. Please check your environment variables.');
   }
   return db;
 }
 
 // User operations
 export async function createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
-  const db = await ensureFirestore();
-  const userRef = db.collection('users').doc();
+  const database = ensureFirebaseInitialized();
+  const userRef = database.collection('users').doc();
   const user: User = {
     ...userData,
     id: userRef.id,
@@ -105,24 +100,24 @@ export async function createUser(userData: Omit<User, 'id' | 'createdAt'>): Prom
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
-  const db = await ensureFirestore();
-  const snapshot = await db.collection('users').where('email', '==', email).get();
+  const database = ensureFirebaseInitialized();
+  const snapshot = await database.collection('users').where('email', '==', email).get();
   if (snapshot.empty) return null;
   
   return snapshot.docs[0].data() as User;
 }
 
 export async function getUserById(id: string): Promise<User | null> {
-  const db = await ensureFirestore();
-  const doc = await db.collection('users').doc(id).get();
+  const database = ensureFirebaseInitialized();
+  const doc = await database.collection('users').doc(id).get();
   if (!doc.exists) return null;
   
   return doc.data() as User;
 }
 
 export async function getWorkersByOrganization(organizationId: string): Promise<User[]> {
-  const db = await ensureFirestore();
-  const snapshot = await db.collection('users')
+  const database = ensureFirebaseInitialized();
+  const snapshot = await database.collection('users')
     .where('organizationId', '==', organizationId)
     .where('role', '==', 'FIELD_WORKER')
     .get();
@@ -132,8 +127,8 @@ export async function getWorkersByOrganization(organizationId: string): Promise<
 
 // Organization operations
 export async function createOrganization(name: string): Promise<Organization> {
-  const db = await ensureFirestore();
-  const orgRef = db.collection('organizations').doc();
+  const database = ensureFirebaseInitialized();
+  const orgRef = database.collection('organizations').doc();
   const organization: Organization = {
     id: orgRef.id,
     name,
@@ -145,8 +140,8 @@ export async function createOrganization(name: string): Promise<Organization> {
 }
 
 export async function getOrganizationByName(name: string): Promise<Organization | null> {
-  const db = await ensureFirestore();
-  const snapshot = await db.collection('organizations').where('name', '==', name).get();
+  const database = ensureFirebaseInitialized();
+  const snapshot = await database.collection('organizations').where('name', '==', name).get();
   if (snapshot.empty) return null;
   
   return snapshot.docs[0].data() as Organization;
@@ -154,8 +149,8 @@ export async function getOrganizationByName(name: string): Promise<Organization 
 
 // Work Order operations
 export async function createWorkOrder(orderData: Omit<WorkOrder, 'id' | 'createdAt' | 'updatedAt'>): Promise<WorkOrder> {
-  const db = await ensureFirestore();
-  const orderRef = db.collection('workOrders').doc();
+  const database = ensureFirebaseInitialized();
+  const orderRef = database.collection('workOrders').doc();
   const workOrder: WorkOrder = {
     ...orderData,
     id: orderRef.id,
@@ -168,8 +163,8 @@ export async function createWorkOrder(orderData: Omit<WorkOrder, 'id' | 'created
 }
 
 export async function getWorkOrdersByOrganization(organizationId: string): Promise<WorkOrder[]> {
-  const db = await ensureFirestore();
-  const snapshot = await db.collection('workOrders')
+  const database = ensureFirebaseInitialized();
+  const snapshot = await database.collection('workOrders')
     .where('organizationId', '==', organizationId)
     .orderBy('createdAt', 'desc')
     .get();
@@ -182,8 +177,8 @@ export async function getWorkOrdersByOrganization(organizationId: string): Promi
 }
 
 export async function getWorkOrdersByAssignedUser(userId: string, organizationId: string): Promise<WorkOrder[]> {
-  const db = await ensureFirestore();
-  const snapshot = await db.collection('workOrders')
+  const database = ensureFirebaseInitialized();
+  const snapshot = await database.collection('workOrders')
     .where('organizationId', '==', organizationId)
     .where('assignedUserId', '==', userId)
     .orderBy('createdAt', 'desc')
@@ -197,16 +192,16 @@ export async function getWorkOrdersByAssignedUser(userId: string, organizationId
 }
 
 export async function updateWorkOrder(id: string, updates: Partial<Omit<WorkOrder, 'id' | 'createdAt'>>): Promise<void> {
-  const db = await ensureFirestore();
-  await db.collection('workOrders').doc(id).update({
+  const database = ensureFirebaseInitialized();
+  await database.collection('workOrders').doc(id).update({
     ...updates,
     updatedAt: new Date(),
   });
 }
 
 export async function getWorkOrderById(id: string): Promise<WorkOrder | null> {
-  const db = await ensureFirestore();
-  const doc = await db.collection('workOrders').doc(id).get();
+  const database = ensureFirebaseInitialized();
+  const doc = await database.collection('workOrders').doc(id).get();
   if (!doc.exists) return null;
   
   const data = doc.data();
