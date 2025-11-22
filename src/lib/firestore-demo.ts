@@ -145,11 +145,16 @@ export async function createUser(userData: Omit<User, 'id' | 'createdAt'>): Prom
   };
   users.set(id, user);
   users.set(user.email, user);
+  console.log('Demo: Created user', user.email);
   return user;
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
-  return users.get(email) || null;
+  console.log('Demo: Looking up user by email:', email);
+  console.log('Demo: Available users:', Array.from(users.keys()));
+  const user = users.get(email) || null;
+  console.log('Demo: Found user:', user?.email, 'Role:', user?.role);
+  return user;
 }
 
 export async function getUserById(id: string): Promise<User | null> {

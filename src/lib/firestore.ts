@@ -14,6 +14,14 @@ const isFirebaseAvailable = () => {
 // Check if we should use demo mode
 const useDemoMode = process.env.NEXT_PUBLIC_USE_DEMO_MODE === 'true' || !isFirebaseAvailable();
 
+console.log('Firestore: Demo mode enabled:', useDemoMode);
+console.log('Firestore: Firebase available:', isFirebaseAvailable());
+console.log('Firestore: Environment check:', {
+  hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
+  hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+  hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+});
+
 // Lazy load Firebase only when needed and available
 const getFirestoreModule = async () => {
   if (!isFirebaseAvailable()) {
@@ -120,10 +128,12 @@ export async function createUser(userData: Omit<User, 'id' | 'createdAt'>): Prom
 
 export async function getUserByEmail(email: string): Promise<User | null> {
   if (useDemoMode) {
+    console.log('Firestore: Using demo mode for getUserByEmail');
     const demo = await import('./firestore-demo');
     return demo.getUserByEmail(email);
   }
   
+  console.log('Firestore: Using real Firebase for getUserByEmail');
   const db = await ensureFirestore();
   const snapshot = await db.collection('users').where('email', '==', email).get();
   if (snapshot.empty) return null;
