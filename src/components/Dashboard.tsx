@@ -33,6 +33,9 @@ export default function Dashboard() {
 
   const userRole = (session?.user as any)?.role
 
+  console.log("Debug - Session:", session)
+  console.log("Debug - User Role:", userRole)
+
   const fetchOrders = async () => {
     try {
       const res = await fetch("/api/work-orders")
@@ -115,6 +118,12 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Action Buttons */}
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-gray-700">
+            Debug: Role detected as "{userRole}" | Show button: {(userRole === "CALL_CENTER" || userRole === "MANAGER").toString()}
+          </p>
+        </div>
+        
         {(userRole === "CALL_CENTER" || userRole === "MANAGER") && (
           <div className="mb-6">
             <button
