@@ -122,6 +122,9 @@ export default function Dashboard() {
           <p className="text-sm text-gray-700">
             Debug: Role detected as "{userRole}" | Show button: {(userRole === "CALL_CENTER" || userRole === "MANAGER").toString()}
           </p>
+          <p className="text-sm text-gray-700">
+            Full session: {JSON.stringify(session?.user, null, 2)}
+          </p>
         </div>
         
         {(userRole === "CALL_CENTER" || userRole === "MANAGER") && (

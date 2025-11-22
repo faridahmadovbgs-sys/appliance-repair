@@ -29,13 +29,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const passwordsMatch = await bcrypt.compare(password, user.password)
         if (!passwordsMatch) return null
 
+        // Handle both old and new schema
+        const userName = user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}`
+          : (user as any).name || user.email
+
+        const orgName = user.organization?.name || "Default Organization"
+
         return {
           id: user.id,
           email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
+          name: userName,
           role: user.role,
-          organizationId: user.organizationId,
-          organizationName: user.organization.name,
+          organizationId: user.organizationId || "default",
+          organizationName: orgName,
         }
       },
     }),
