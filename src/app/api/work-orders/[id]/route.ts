@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getWorkOrderById, updateWorkOrder, getUserById } from "@/lib/firestore"
 import { auth } from "@/lib/auth"
 
 export async function PATCH(
@@ -14,69 +14,57 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { status, assignedToId, notes } = body
+    const { status, assignedUserId, notes } = body
 
     const userRole = (session.user as any).role
     const userId = (session.user as any).id
 
-    const order = await prisma.workOrder.findUnique({ where: { id } })
+    const order = await getWorkOrderById(id)
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 })
     }
 
     // Authorization checks
     if (userRole === "FIELD_WORKER") {
-      if (order.assignedToId !== userId) {
+      if (order.assignedUserId !== userId) {
         return NextResponse.json(
           { error: "You can only update your assigned orders" },
           { status: 403 }
         )
       }
-      // Field workers can only update status and notes
-      const updatedOrder = await prisma.workOrder.update({
-        where: { id },
-        data: {
-          status,
-          notes,
-          completedAt: status === "COMPLETED" ? new Date() : order.completedAt,
-        },
-        include: {
-          createdBy: { select: { firstName: true, lastName: true, email: true } },
-          assignedTo: { select: { firstName: true, lastName: true, email: true } },
-        },
+      // Field workers can only update status
+      await updateWorkOrder(id, {
+        status,
       })
+      const updatedOrder = await getWorkOrderById(id)
       return NextResponse.json(updatedOrder)
     } else if (userRole === "MANAGER") {
       // Managers can update everything
-      const updatedOrder = await prisma.workOrder.update({
-        where: { id },
-        data: {
-          status,
-          assignedToId,
-          notes,
-          completedAt: status === "COMPLETED" ? new Date() : order.completedAt,
-        },
-        include: {
-          createdBy: { select: { firstName: true, lastName: true, email: true } },
-          assignedTo: { select: { firstName: true, lastName: true, email: true } },
-        },
-      })
+      const updates: any = {
+        status,
+      }
+      
+      if (assignedUserId) {
+        const assignedUser = await getUserById(assignedUserId)
+        if (assignedUser) {
+          updates.assignedUserId = assignedUserId
+          updates.assignedUserName = `${assignedUser.firstName} ${assignedUser.lastName}`
+        }
+      }
+      
+      await updateWorkOrder(id, updates)
+      const updatedOrder = await getWorkOrderById(id)
       return NextResponse.json(updatedOrder)
     } else if (userRole === "CALL_CENTER") {
       // Call center can update notes
-      const updatedOrder = await prisma.workOrder.update({
-        where: { id },
-        data: { notes },
-        include: {
-          createdBy: { select: { firstName: true, lastName: true, email: true } },
-          assignedTo: { select: { firstName: true, lastName: true, email: true } },
-        },
-      })
+      await updateWorkOrder(id, { status })
+      const updatedOrder = await getWorkOrderById(id)
       return NextResponse.json(updatedOrder)
     }
 
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   } catch (error) {
+    console.error('Error updating work order:', error)
     return NextResponse.json(
       { error: "Failed to update work order" },
       { status: 500 }

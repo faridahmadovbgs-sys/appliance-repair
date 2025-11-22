@@ -1,7 +1,7 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import bcrypt from "bcrypt"
-import { prisma } from "./prisma"
+import { getUserByEmail } from "./firestore"
 import { z } from "zod"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -19,30 +19,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!parsedCredentials.success) return null
 
         const { email, password } = parsedCredentials.data
-        const user = await prisma.user.findUnique({ 
-          where: { email },
-          include: { organization: true }
-        })
+        
+        try {
+          const user = await getUserByEmail(email)
 
-        if (!user) return null
+          if (!user) return null
 
-        const passwordsMatch = await bcrypt.compare(password, user.password)
-        if (!passwordsMatch) return null
+          const passwordsMatch = await bcrypt.compare(password, user.passwordHash)
+          if (!passwordsMatch) return null
 
-        // Handle both old and new schema
-        const userName = user.firstName && user.lastName 
-          ? `${user.firstName} ${user.lastName}`
-          : (user as any).name || user.email
+          const userName = user.firstName && user.lastName 
+            ? `${user.firstName} ${user.lastName}`
+            : user.email
 
-        const orgName = user.organization?.name || "Default Organization"
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: userName,
-          role: user.role,
-          organizationId: user.organizationId || "default",
-          organizationName: orgName,
+          return {
+            id: user.id,
+            email: user.email,
+            name: userName,
+            role: user.role,
+            organizationId: user.organizationId,
+            organizationName: user.organizationName,
+          }
+        } catch (error) {
+          console.error('Authentication error:', error)
+          return null
         }
       },
     }),

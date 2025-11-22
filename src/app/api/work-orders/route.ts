@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getWorkOrdersByOrganization, getWorkOrdersByAssignedUser } from "@/lib/firestore"
 import { auth } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -16,32 +16,16 @@ export async function GET(request: NextRequest) {
     let orders
 
     if (userRole === "CALL_CENTER" || userRole === "MANAGER") {
-      orders = await prisma.workOrder.findMany({
-        where: { organizationId },
-        include: {
-          createdBy: { select: { firstName: true, lastName: true, email: true } },
-          assignedTo: { select: { firstName: true, lastName: true, email: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      })
+      orders = await getWorkOrdersByOrganization(organizationId)
     } else if (userRole === "FIELD_WORKER") {
-      orders = await prisma.workOrder.findMany({
-        where: { 
-          assignedToId: userId,
-          organizationId 
-        },
-        include: {
-          createdBy: { select: { firstName: true, lastName: true, email: true } },
-          assignedTo: { select: { firstName: true, lastName: true, email: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      })
+      orders = await getWorkOrdersByAssignedUser(userId, organizationId)
     } else {
       return NextResponse.json({ error: "Invalid role" }, { status: 403 })
     }
 
     return NextResponse.json(orders)
   } catch (error) {
+    console.error('Error fetching work orders:', error)
     return NextResponse.json(
       { error: "Failed to fetch work orders" },
       { status: 500 }
@@ -66,36 +50,32 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const {
+      title,
       customerName,
       customerPhone,
       customerAddress,
-      serviceType,
       description,
       priority,
     } = body
 
-    const orderCount = await prisma.workOrder.count()
-    const orderNumber = `WO-${String(orderCount + 1).padStart(6, "0")}`
-
-    const order = await prisma.workOrder.create({
-      data: {
-        orderNumber,
-        customerName,
-        customerPhone,
-        customerAddress,
-        serviceType,
-        description,
-        priority: priority || "MEDIUM",
-        createdById: (session.user as any).id,
-        organizationId: (session.user as any).organizationId,
-      },
-      include: {
-        createdBy: { select: { firstName: true, lastName: true, email: true } },
-      },
+    const { createWorkOrder } = await import('@/lib/firestore')
+    
+    const order = await createWorkOrder({
+      title: title || 'New Work Order',
+      customerName,
+      customerPhone,
+      customerAddress,
+      description,
+      priority: priority || "MEDIUM",
+      status: "PENDING",
+      createdById: (session.user as any).id,
+      createdByName: session.user.name || session.user.email || 'Unknown',
+      organizationId: (session.user as any).organizationId,
     })
 
     return NextResponse.json(order, { status: 201 })
   } catch (error) {
+    console.error('Error creating work order:', error)
     return NextResponse.json(
       { error: "Failed to create work order" },
       { status: 500 }

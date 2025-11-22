@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { hash } from "bcrypt"
-import { prisma } from "@/lib/prisma"
+import { createUser, createOrganization, getOrganizationByName, getUserByEmail } from "@/lib/firestore"
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,9 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    })
+    const existingUser = await getUserByEmail(email)
 
     if (existingUser) {
       return NextResponse.json(
@@ -31,46 +29,31 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hash(password, 10)
 
     // Check if organization exists
-    let org = await prisma.organization.findUnique({
-      where: { name: organization }
-    })
+    let org = await getOrganizationByName(organization)
 
     // Create organization if it doesn't exist
     if (!org) {
-      org = await prisma.organization.create({
-        data: { name: organization }
-      })
+      org = await createOrganization(organization)
     }
 
     // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        firstName,
-        lastName,
-        password: hashedPassword,
-        role,
-        organizationId: org.id
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        organization: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      }
+    const user = await createUser({
+      email,
+      firstName,
+      lastName,
+      passwordHash: hashedPassword,
+      role: role as 'CALL_CENTER' | 'MANAGER' | 'FIELD_WORKER',
+      organizationId: org.id,
+      organizationName: org.name
     })
+
+    // Return user data (excluding password)
+    const { passwordHash: _, ...userWithoutPassword } = user
 
     return NextResponse.json(
       { 
         message: "User created successfully",
-        user 
+        user: userWithoutPassword 
       },
       { status: 201 }
     )

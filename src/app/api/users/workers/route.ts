@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getWorkersByOrganization } from "@/lib/firestore"
 import { auth } from "@/lib/auth"
 
 export async function GET() {
@@ -19,21 +19,19 @@ export async function GET() {
       )
     }
 
-    const workers = await prisma.user.findMany({
-      where: { 
-        role: "FIELD_WORKER",
-        organizationId 
-      },
-      select: { 
-        id: true, 
-        firstName: true, 
-        lastName: true, 
-        email: true 
-      },
-    })
+    const workers = await getWorkersByOrganization(organizationId)
+    
+    // Format workers for response
+    const formattedWorkers = workers.map(worker => ({
+      id: worker.id,
+      firstName: worker.firstName,
+      lastName: worker.lastName,
+      email: worker.email
+    }))
 
-    return NextResponse.json(workers)
+    return NextResponse.json(formattedWorkers)
   } catch (error) {
+    console.error('Error fetching workers:', error)
     return NextResponse.json(
       { error: "Failed to fetch workers" },
       { status: 500 }
