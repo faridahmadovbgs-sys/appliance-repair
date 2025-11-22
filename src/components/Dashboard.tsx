@@ -20,8 +20,8 @@ type WorkOrder = {
   status: string
   notes?: string
   createdAt: string
-  assignedTo?: { name: string; email: string }
-  createdBy: { name: string; email: string }
+  assignedTo?: { firstName: string; lastName: string; email: string }
+  createdBy: { firstName: string; lastName: string; email: string }
 }
 
 export default function Dashboard() {
