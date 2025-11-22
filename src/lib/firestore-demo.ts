@@ -133,10 +133,18 @@ function seedDemoData() {
 }
 
 // Initialize demo data
-seedDemoData();
+let isSeeded = false;
+function ensureSeeded() {
+  if (!isSeeded) {
+    seedDemoData();
+    isSeeded = true;
+    console.log('Demo: Data seeded');
+  }
+}
 
 // Demo mode functions (same interface as firestore.ts)
 export async function createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+  ensureSeeded();
   const id = `user-${Date.now()}`;
   const user: User = {
     ...userData,
@@ -150,6 +158,7 @@ export async function createUser(userData: Omit<User, 'id' | 'createdAt'>): Prom
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
+  ensureSeeded();
   console.log('Demo: Looking up user by email:', email);
   console.log('Demo: Available users:', Array.from(users.keys()));
   const user = users.get(email) || null;
@@ -158,16 +167,19 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 }
 
 export async function getUserById(id: string): Promise<User | null> {
+  ensureSeeded();
   return users.get(id) || null;
 }
 
 export async function getWorkersByOrganization(organizationId: string): Promise<User[]> {
+  ensureSeeded();
   return Array.from(users.values()).filter(
     user => user.organizationId === organizationId && user.role === 'FIELD_WORKER'
   );
 }
 
 export async function createOrganization(name: string): Promise<Organization> {
+  ensureSeeded();
   const id = `org-${Date.now()}`;
   const organization: Organization = {
     id,
@@ -180,10 +192,12 @@ export async function createOrganization(name: string): Promise<Organization> {
 }
 
 export async function getOrganizationByName(name: string): Promise<Organization | null> {
+  ensureSeeded();
   return organizations.get(name) || null;
 }
 
 export async function createWorkOrder(orderData: Omit<WorkOrder, 'id' | 'createdAt' | 'updatedAt'>): Promise<WorkOrder> {
+  ensureSeeded();
   const id = `order-${Date.now()}`;
   const workOrder: WorkOrder = {
     ...orderData,
@@ -196,18 +210,21 @@ export async function createWorkOrder(orderData: Omit<WorkOrder, 'id' | 'created
 }
 
 export async function getWorkOrdersByOrganization(organizationId: string): Promise<WorkOrder[]> {
+  ensureSeeded();
   return Array.from(workOrders.values())
     .filter(order => order.organizationId === organizationId)
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 export async function getWorkOrdersByAssignedUser(userId: string, organizationId: string): Promise<WorkOrder[]> {
+  ensureSeeded();
   return Array.from(workOrders.values())
     .filter(order => order.organizationId === organizationId && order.assignedUserId === userId)
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 export async function updateWorkOrder(id: string, updates: Partial<Omit<WorkOrder, 'id' | 'createdAt'>>): Promise<void> {
+  ensureSeeded();
   const order = workOrders.get(id);
   if (order) {
     const updated = {
@@ -220,6 +237,7 @@ export async function updateWorkOrder(id: string, updates: Partial<Omit<WorkOrde
 }
 
 export async function getWorkOrderById(id: string): Promise<WorkOrder | null> {
+  ensureSeeded();
   return workOrders.get(id) || null;
 }
 
