@@ -11,23 +11,28 @@ export async function GET(request: NextRequest) {
 
     const userRole = (session.user as any).role
     const userId = (session.user as any).id
+    const organizationId = (session.user as any).organizationId
 
     let orders
 
     if (userRole === "CALL_CENTER" || userRole === "MANAGER") {
       orders = await prisma.workOrder.findMany({
+        where: { organizationId },
         include: {
-          createdBy: { select: { name: true, email: true } },
-          assignedTo: { select: { name: true, email: true } },
+          createdBy: { select: { firstName: true, lastName: true, email: true } },
+          assignedTo: { select: { firstName: true, lastName: true, email: true } },
         },
         orderBy: { createdAt: "desc" },
       })
     } else if (userRole === "FIELD_WORKER") {
       orders = await prisma.workOrder.findMany({
-        where: { assignedToId: userId },
+        where: { 
+          assignedToId: userId,
+          organizationId 
+        },
         include: {
-          createdBy: { select: { name: true, email: true } },
-          assignedTo: { select: { name: true, email: true } },
+          createdBy: { select: { firstName: true, lastName: true, email: true } },
+          assignedTo: { select: { firstName: true, lastName: true, email: true } },
         },
         orderBy: { createdAt: "desc" },
       })
@@ -82,9 +87,10 @@ export async function POST(request: NextRequest) {
         description,
         priority: priority || "MEDIUM",
         createdById: (session.user as any).id,
+        organizationId: (session.user as any).organizationId,
       },
       include: {
-        createdBy: { select: { name: true, email: true } },
+        createdBy: { select: { firstName: true, lastName: true, email: true } },
       },
     })
 

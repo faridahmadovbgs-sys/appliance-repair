@@ -9,15 +9,28 @@ async function main() {
   // Hash password
   const hashedPassword = await bcrypt.hash("password123", 10)
 
+  // Create organization
+  const demoOrg = await prisma.organization.upsert({
+    where: { name: "Demo Repairs Inc" },
+    update: {},
+    create: {
+      name: "Demo Repairs Inc",
+    },
+  })
+
+  console.log("Created organization:", demoOrg)
+
   // Create users
   const callCenter = await prisma.user.upsert({
     where: { email: "callcenter@demo.com" },
     update: {},
     create: {
       email: "callcenter@demo.com",
-      name: "Call Center Agent",
+      firstName: "Sarah",
+      lastName: "Johnson",
       password: hashedPassword,
       role: "CALL_CENTER",
+      organizationId: demoOrg.id,
     },
   })
 
@@ -26,9 +39,11 @@ async function main() {
     update: {},
     create: {
       email: "manager@demo.com",
-      name: "Manager",
+      firstName: "Michael",
+      lastName: "Chen",
       password: hashedPassword,
       role: "MANAGER",
+      organizationId: demoOrg.id,
     },
   })
 
@@ -37,9 +52,11 @@ async function main() {
     update: {},
     create: {
       email: "worker@demo.com",
-      name: "Field Worker",
+      firstName: "David",
+      lastName: "Rodriguez",
       password: hashedPassword,
       role: "FIELD_WORKER",
+      organizationId: demoOrg.id,
     },
   })
 
@@ -57,6 +74,7 @@ async function main() {
       priority: "HIGH",
       status: "PENDING",
       createdById: callCenter.id,
+      organizationId: demoOrg.id,
     },
   })
 
@@ -72,6 +90,7 @@ async function main() {
       status: "ASSIGNED",
       createdById: manager.id,
       assignedToId: worker.id,
+      organizationId: demoOrg.id,
     },
   })
 
@@ -86,6 +105,7 @@ async function main() {
       priority: "MEDIUM",
       status: "PENDING",
       createdById: callCenter.id,
+      organizationId: demoOrg.id,
     },
   })
 

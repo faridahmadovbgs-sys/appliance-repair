@@ -1,19 +1,29 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get("registered") === "true") {
+      setSuccess("Account created successfully! Please sign in.")
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setSuccess("")
     setLoading(true)
 
     try {
@@ -82,6 +92,12 @@ export default function LoginPage() {
             </div>
           )}
 
+          {success && (
+            <div className="text-green-600 text-sm text-center bg-green-50 p-3 rounded-lg">
+              {success}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -98,6 +114,15 @@ export default function LoginPage() {
           <p>Manager: <code className="bg-gray-100 px-2 py-1 rounded">manager@demo.com</code></p>
           <p>Field Worker: <code className="bg-gray-100 px-2 py-1 rounded">worker@demo.com</code></p>
           <p className="mt-2">Password for all: <code className="bg-gray-100 px-2 py-1 rounded">password123</code></p>
+        </div>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{" "}
+            <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+              Create one now
+            </Link>
+          </p>
         </div>
       </div>
     </div>

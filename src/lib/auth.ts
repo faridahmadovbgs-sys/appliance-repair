@@ -19,7 +19,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!parsedCredentials.success) return null
 
         const { email, password } = parsedCredentials.data
-        const user = await prisma.user.findUnique({ where: { email } })
+        const user = await prisma.user.findUnique({ 
+          where: { email },
+          include: { organization: true }
+        })
 
         if (!user) return null
 
@@ -29,8 +32,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
+          name: `${user.firstName} ${user.lastName}`,
           role: user.role,
+          organizationId: user.organizationId,
+          organizationName: user.organization.name,
         }
       },
     }),
@@ -39,13 +44,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as any).role
+        token.organizationId = (user as any).organizationId
+        token.organizationName = (user as any).organizationName
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).role = token.role as string
-        (session.user as any).id = token.sub
+        ;(session.user as any).role = token.role as string
+        ;(session.user as any).id = token.sub
+        ;(session.user as any).organizationId = token.organizationId as string
+        ;(session.user as any).organizationName = token.organizationName as string
       }
       return session
     },

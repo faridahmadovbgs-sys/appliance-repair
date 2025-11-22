@@ -10,18 +10,34 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+model Organization {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  users      User[]
+  workOrders WorkOrder[]
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
-  name      String
+  firstName String
+  lastName  String
   password  String
   role      UserRole
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
   // Relations
   createdOrders  WorkOrder[] @relation("CreatedOrders")
   assignedOrders WorkOrder[] @relation("AssignedOrders")
+  
+  @@index([organizationId])
 }
 
 model WorkOrder {
@@ -35,6 +51,9 @@ model WorkOrder {
   priority    Priority        @default(MEDIUM)
   status      OrderStatus     @default(PENDING)
   notes       String?
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
   
   createdById String
   createdBy   User            @relation("CreatedOrders", fields: [createdById], references: [id])
@@ -50,6 +69,7 @@ model WorkOrder {
   @@index([serviceType])
   @@index([createdById])
   @@index([assignedToId])
+  @@index([organizationId])
 }
 
 enum UserRole {

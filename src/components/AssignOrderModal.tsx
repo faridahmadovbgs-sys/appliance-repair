@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 
 type Worker = {
   id: string
-  name: string
+  firstName: string
+  lastName: string
   email: string
 }
 
@@ -77,7 +78,7 @@ export default function AssignOrderModal({ order, onClose, onAssign }: AssignOrd
                 <option value="">-- Select a worker --</option>
                 {workers.map((worker) => (
                   <option key={worker.id} value={worker.id}>
-                    {worker.name} ({worker.email})
+                    {worker.firstName} {worker.lastName} ({worker.email})
                   </option>
                 ))}
               </select>

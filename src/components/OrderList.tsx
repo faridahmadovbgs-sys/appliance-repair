@@ -14,8 +14,8 @@ type Order = {
   status: string
   notes?: string
   createdAt: string
-  assignedTo?: { name: string; email: string }
-  createdBy: { name: string; email: string }
+  assignedTo?: { firstName: string; lastName: string; email: string }
+  createdBy: { firstName: string; lastName: string; email: string }
 }
 
 type OrderListProps = {
@@ -137,11 +137,11 @@ export default function OrderList({ orders, userRole, onUpdateOrder, onAssignOrd
 
               <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                 <div>
-                  <span className="font-medium">Created by:</span> {order.createdBy.name}
+                  <span className="font-medium">Created by:</span> {order.createdBy.firstName} {order.createdBy.lastName}
                 </div>
                 {order.assignedTo && (
                   <div>
-                    <span className="font-medium">Assigned to:</span> {order.assignedTo.name}
+                    <span className="font-medium">Assigned to:</span> {order.assignedTo.firstName} {order.assignedTo.lastName}
                   </div>
                 )}
                 <div>

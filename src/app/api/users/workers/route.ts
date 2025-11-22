@@ -10,6 +10,8 @@ export async function GET() {
     }
 
     const userRole = (session.user as any).role
+    const organizationId = (session.user as any).organizationId
+    
     if (userRole !== "MANAGER") {
       return NextResponse.json(
         { error: "Only managers can view workers" },
@@ -18,8 +20,16 @@ export async function GET() {
     }
 
     const workers = await prisma.user.findMany({
-      where: { role: "FIELD_WORKER" },
-      select: { id: true, name: true, email: true },
+      where: { 
+        role: "FIELD_WORKER",
+        organizationId 
+      },
+      select: { 
+        id: true, 
+        firstName: true, 
+        lastName: true, 
+        email: true 
+      },
     })
 
     return NextResponse.json(workers)
