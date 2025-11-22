@@ -41,8 +41,8 @@ export async function PATCH(
           completedAt: status === "COMPLETED" ? new Date() : order.completedAt,
         },
         include: {
-          createdBy: { select: { name: true, email: true } },
-          assignedTo: { select: { name: true, email: true } },
+          createdBy: { select: { firstName: true, lastName: true, email: true } },
+          assignedTo: { select: { firstName: true, lastName: true, email: true } },
         },
       })
       return NextResponse.json(updatedOrder)
